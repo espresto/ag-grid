@@ -3574,8 +3574,7 @@ var ag;
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var ag;
 (function (ag) {
@@ -6962,6 +6961,16 @@ var ag;
                             });
                         }
                     });
+                    this.columnController.getDisplayedColumns().forEach(function (column) {
+                        if (column.sort && column.colDef.cellRenderer && column.colDef.cellRenderer.renderer === 'group') {
+                            var ascending = column.sort === constants.ASC;
+                            sortingOptions.push({
+                                inverter: ascending ? 1 : -1,
+                                sortedAt: column.sortedAt,
+                                column: column
+                            });
+                        }
+                    });
                     if (sortingOptions.length > 0) {
                         sorting = true;
                     }
@@ -7005,10 +7014,27 @@ var ag;
                         this.sortList(node.childrenAfterSort, sortOptions);
                     }
                 }
+                var containsGroupSort = false;
+                for (i = 0; i < sortOptions.length; i++) {
+                    var column = sortOptions[i].column;
+                    if (column.colDef.cellRenderer && column.colDef.cellRenderer.renderer === 'group') {
+                        containsGroupSort = true;
+                        break;
+                    }
+                }
                 var that = this;
                 function compare(nodeA, nodeB, column, isInverted) {
-                    var valueA = that.valueService.getValue(column.colDef, nodeA.data, nodeA);
-                    var valueB = that.valueService.getValue(column.colDef, nodeB.data, nodeB);
+                    var valueA, valueB;
+                    if (nodeA.group === true && nodeB.group === true) {
+                        if (column.colDef.field === node.field || containsGroupSort) {
+                            valueA = nodeA.key;
+                            valueB = nodeB.key;
+                        }
+                    }
+                    else {
+                        valueA = that.valueService.getValue(column.colDef, nodeA.data, nodeA);
+                        valueB = that.valueService.getValue(column.colDef, nodeB.data, nodeB);
+                    }
                     if (column.colDef.comparator) {
                         //if comparator provided, use it
                         return column.colDef.comparator(valueA, valueB, nodeA, nodeB, isInverted);
