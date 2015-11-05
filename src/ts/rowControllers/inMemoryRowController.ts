@@ -361,6 +361,12 @@ module ag.grid {
 
         private sortList(nodes: RowNode[], sortOptions: any) {
 
+            // find comparators for fields
+            var fieldComparator: any = {};
+            this.columnController.getAllColumns().forEach(function (column: Column) {
+                fieldComparator[column.colDef.field] = column.colDef.comparator;
+            });
+
             // sort any groups recursively
             for (var i = 0, l = nodes.length; i < l; i++) { // critical section, no functional programming
                 var node = nodes[i];
@@ -382,21 +388,23 @@ module ag.grid {
             var that = this;
 
             function compare(nodeA: RowNode, nodeB: RowNode, column:Column, isInverted: boolean) {
-                var valueA: any, valueB: any;
+                var valueA: any, valueB: any, cmp: any;
 
                 if (nodeA.group === true && nodeB.group === true) {
                     if (column.colDef.field === node.field || containsGroupSort) {
                         valueA = nodeA.key;
                         valueB = nodeB.key;
+                        cmp = column.colDef.comparator || fieldComparator[nodeA.field];
                     }
                 } else {
                     valueA = that.valueService.getValue(column.colDef, nodeA.data, nodeA);
                     valueB = that.valueService.getValue(column.colDef, nodeB.data, nodeB);
+                    cmp = column.colDef.comparator;
                 }
 
-                if (column.colDef.comparator) {
+                if (cmp) {
                     //if comparator provided, use it
-                    return column.colDef.comparator(valueA, valueB, nodeA, nodeB, isInverted);
+                    return cmp(valueA, valueB, nodeA, nodeB, isInverted);
                 } else {
                     //otherwise do our own comparison
                     return _.defaultComparator(valueA, valueB);

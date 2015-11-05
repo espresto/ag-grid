@@ -7006,6 +7006,11 @@ var ag;
                 this.updateChildIndexes(rowNodes);
             };
             InMemoryRowController.prototype.sortList = function (nodes, sortOptions) {
+                // find comparators for fields
+                var fieldComparator = {};
+                this.columnController.getAllColumns().forEach(function (column) {
+                    fieldComparator[column.colDef.field] = column.colDef.comparator;
+                });
                 // sort any groups recursively
                 for (var i = 0, l = nodes.length; i < l; i++) {
                     var node = nodes[i];
@@ -7024,20 +7029,22 @@ var ag;
                 }
                 var that = this;
                 function compare(nodeA, nodeB, column, isInverted) {
-                    var valueA, valueB;
+                    var valueA, valueB, cmp;
                     if (nodeA.group === true && nodeB.group === true) {
                         if (column.colDef.field === node.field || containsGroupSort) {
                             valueA = nodeA.key;
                             valueB = nodeB.key;
+                            cmp = column.colDef.comparator || fieldComparator[nodeA.field];
                         }
                     }
                     else {
                         valueA = that.valueService.getValue(column.colDef, nodeA.data, nodeA);
                         valueB = that.valueService.getValue(column.colDef, nodeB.data, nodeB);
+                        cmp = column.colDef.comparator;
                     }
-                    if (column.colDef.comparator) {
+                    if (cmp) {
                         //if comparator provided, use it
-                        return column.colDef.comparator(valueA, valueB, nodeA, nodeB, isInverted);
+                        return cmp(valueA, valueB, nodeA, nodeB, isInverted);
                     }
                     else {
                         //otherwise do our own comparison
